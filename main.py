@@ -1,6 +1,6 @@
 import os
 import json
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request, HTTPException
 from pydantic import BaseModel, ValidationError
 from typing import Optional
 
@@ -9,6 +9,10 @@ app = FastAPI(
     description="Tool endpoints for event equipment rental",
     version="1.0.0"
 )
+
+# -------------------------
+# CONFIG
+# -------------------------
 
 API_KEY = os.environ.get("API_KEY", "dev-key")
 
@@ -58,12 +62,14 @@ class HandoffRequest(BaseModel):
 
 
 # -------------------------
-# UTIL: SAFE BODY PARSER
+# UTILS
 # -------------------------
 
 async def parse_body(request: Request, model: BaseModel):
     try:
         raw = await request.body()
+        if not raw:
+            raise HTTPException(status_code=400, detail="Empty request body")
         data = json.loads(raw.decode())
         return model(**data)
     except json.JSONDecodeError:
@@ -73,20 +79,36 @@ async def parse_body(request: Request, model: BaseModel):
 
 
 # -------------------------
-# HEALTH CHECK
+# HEALTH
 # -------------------------
 
 @app.get("/")
+@app.get("")
 def health():
     return {"status": "ok", "service": "Prime Event Rentals Tools"}
 
 
 # -------------------------
-# CHECK AVAILABILITY
+# TOOL: CHECK AVAILABILITY
 # -------------------------
 
-@app.post("/tools/check-availability")
+@app.api_route(
+    "/tools/check-availability",
+    methods=["POST", "GET", "OPTIONS"]
+)
+@app.api_route(
+    "/tools/check-availability/",
+    methods=["POST", "GET", "OPTIONS"],
+    include_in_schema=False
+)
 async def check_availability(request: Request):
+
+    if request.method != "POST":
+        return {
+            "status": "ok",
+            "note": "Use POST with a JSON body to check availability"
+        }
+
     payload = await parse_body(request, AvailabilityRequest)
     item = payload.item.lower()
 
@@ -104,11 +126,26 @@ async def check_availability(request: Request):
 
 
 # -------------------------
-# GET UNIT PRICE
+# TOOL: GET UNIT PRICE
 # -------------------------
 
-@app.post("/tools/get-price")
+@app.api_route(
+    "/tools/get-price",
+    methods=["POST", "GET", "OPTIONS"]
+)
+@app.api_route(
+    "/tools/get-price/",
+    methods=["POST", "GET", "OPTIONS"],
+    include_in_schema=False
+)
 async def get_price(request: Request):
+
+    if request.method != "POST":
+        return {
+            "status": "ok",
+            "note": "Use POST with a JSON body to get pricing"
+        }
+
     payload = await parse_body(request, PriceRequest)
     item = payload.item.lower()
 
@@ -123,11 +160,26 @@ async def get_price(request: Request):
 
 
 # -------------------------
-# CALCULATE TOTAL COST
+# TOOL: CALCULATE PRICE
 # -------------------------
 
-@app.post("/tools/calculate-price")
+@app.api_route(
+    "/tools/calculate-price",
+    methods=["POST", "GET", "OPTIONS"]
+)
+@app.api_route(
+    "/tools/calculate-price/",
+    methods=["POST", "GET", "OPTIONS"],
+    include_in_schema=False
+)
 async def calculate_price(request: Request):
+
+    if request.method != "POST":
+        return {
+            "status": "ok",
+            "note": "Use POST with a JSON body to calculate price"
+        }
+
     payload = await parse_body(request, PriceRequest)
     item = payload.item.lower()
 
@@ -151,11 +203,26 @@ async def calculate_price(request: Request):
 
 
 # -------------------------
-# CREATE BOOKING
+# TOOL: CREATE BOOKING
 # -------------------------
 
-@app.post("/tools/create-booking")
+@app.api_route(
+    "/tools/create-booking",
+    methods=["POST", "GET", "OPTIONS"]
+)
+@app.api_route(
+    "/tools/create-booking/",
+    methods=["POST", "GET", "OPTIONS"],
+    include_in_schema=False
+)
 async def create_booking(request: Request):
+
+    if request.method != "POST":
+        return {
+            "status": "ok",
+            "note": "Use POST with a JSON body to create a booking"
+        }
+
     payload = await parse_body(request, BookingRequest)
     item = payload.item.lower()
 
@@ -170,11 +237,26 @@ async def create_booking(request: Request):
 
 
 # -------------------------
-# HUMAN HANDOFF
+# TOOL: HUMAN HANDOFF
 # -------------------------
 
-@app.post("/tools/handoff")
+@app.api_route(
+    "/tools/handoff",
+    methods=["POST", "GET", "OPTIONS"]
+)
+@app.api_route(
+    "/tools/handoff/",
+    methods=["POST", "GET", "OPTIONS"],
+    include_in_schema=False
+)
 async def human_handoff(request: Request):
+
+    if request.method != "POST":
+        return {
+            "status": "ok",
+            "note": "Use POST with a JSON body to request human handoff"
+        }
+
     payload = await parse_body(request, HandoffRequest)
 
     return {
