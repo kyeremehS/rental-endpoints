@@ -15,9 +15,9 @@ app = FastAPI(
 
 API_KEY = os.environ.get("API_KEY", "dev-key")
 
-def verify_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key")
+# def verify_key(x_api_key: str = Header(...)):
+#     if x_api_key != API_KEY:
+#         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
 # -------------------------
@@ -81,10 +81,8 @@ def health():
 
 @app.post("/tools/check-availability")
 def check_availability(
-    payload: AvailabilityRequest,
-    x_api_key: str = Header(...)
+    payload: AvailabilityRequest
 ):
-    verify_key(x_api_key)
 
     item = payload.item.lower()
 
@@ -110,10 +108,8 @@ def check_availability(
 
 @app.post("/tools/get-price")
 def get_price(
-    payload: PriceRequest,
-    x_api_key: str = Header(...)
+    payload: PriceRequest
 ):
-    verify_key(x_api_key)
 
     item = payload.item.lower()
 
@@ -135,10 +131,8 @@ def get_price(
 
 @app.post("/tools/calculate-price")
 def calculate_price(
-    payload: PriceRequest,
-    x_api_key: str = Header(...)
+    payload: PriceRequest
 ):
-    verify_key(x_api_key)
 
     item = payload.item.lower()
 
@@ -168,10 +162,8 @@ def calculate_price(
 
 @app.post("/tools/create-booking")
 def create_booking(
-    payload: BookingRequest,
-    x_api_key: str = Header(...)
+    payload: BookingRequest
 ):
-    verify_key(x_api_key)
 
     item = payload.item.lower()
 
@@ -191,10 +183,8 @@ def create_booking(
 
 @app.post("/tools/handoff")
 def human_handoff(
-    payload: HandoffRequest,
-    x_api_key: str = Header(...)
+    payload: HandoffRequest
 ):
-    verify_key(x_api_key)
 
     return {
         "status": "received",
