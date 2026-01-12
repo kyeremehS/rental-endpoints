@@ -85,7 +85,7 @@ async def check_availability(payload: AvailabilityRequest):
 async def calculate_price(payload: PriceRequest):
     item = payload.item.lower()
     if item not in EQUIPMENT_DB:
-        raise HTTPException(status_code=404, detail="Item not found")
+        return {"available": False, "reason": "Item not found"}
 
     unit_price = EQUIPMENT_DB[item]["price"]
     subtotal = unit_price * payload.quantity * payload.days
