@@ -1,6 +1,7 @@
 import os
-from fastapi import FastAPI, HTTPException, Header
-from pydantic import BaseModel
+import json
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel, ValidationError
 from typing import Optional
 
 app = FastAPI(
@@ -9,19 +10,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# -------------------------
-# SIMPLE API KEY SECURITY
-# -------------------------
-
 API_KEY = os.environ.get("API_KEY", "dev-key")
 
-# def verify_key(x_api_key: str = Header(...)):
-#     if x_api_key != API_KEY:
-#         raise HTTPException(status_code=401, detail="Invalid API key")
-
-
 # -------------------------
-# MOCK DATA (replace later)
+# MOCK DATA
 # -------------------------
 
 EQUIPMENT_DB = {
@@ -33,7 +25,6 @@ EQUIPMENT_DB = {
 }
 
 DELIVERY_FEE = 100
-
 
 # -------------------------
 # MODELS
@@ -67,6 +58,21 @@ class HandoffRequest(BaseModel):
 
 
 # -------------------------
+# UTIL: SAFE BODY PARSER
+# -------------------------
+
+async def parse_body(request: Request, model: BaseModel):
+    try:
+        raw = await request.body()
+        data = json.loads(raw.decode())
+        return model(**data)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=e.errors())
+
+
+# -------------------------
 # HEALTH CHECK
 # -------------------------
 
@@ -76,21 +82,16 @@ def health():
 
 
 # -------------------------
-# TOOL: CHECK AVAILABILITY
+# CHECK AVAILABILITY
 # -------------------------
 
 @app.post("/tools/check-availability")
-def check_availability(
-    payload: AvailabilityRequest
-):
-
+async def check_availability(request: Request):
+    payload = await parse_body(request, AvailabilityRequest)
     item = payload.item.lower()
 
     if item not in EQUIPMENT_DB:
-        return {
-            "available": False,
-            "reason": "Item not found"
-        }
+        return {"available": False, "reason": "Item not found"}
 
     available_qty = EQUIPMENT_DB[item]["available"]
 
@@ -103,37 +104,31 @@ def check_availability(
 
 
 # -------------------------
-# TOOL: GET UNIT PRICE
+# GET UNIT PRICE
 # -------------------------
 
 @app.post("/tools/get-price")
-def get_price(
-    payload: PriceRequest
-):
-
+async def get_price(request: Request):
+    payload = await parse_body(request, PriceRequest)
     item = payload.item.lower()
 
     if item not in EQUIPMENT_DB:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    unit_price = EQUIPMENT_DB[item]["price"]
-
     return {
         "item": item,
-        "unit_price_per_day": unit_price,
+        "unit_price_per_day": EQUIPMENT_DB[item]["price"],
         "currency": "GHS"
     }
 
 
 # -------------------------
-# TOOL: CALCULATE TOTAL COST
+# CALCULATE TOTAL COST
 # -------------------------
 
 @app.post("/tools/calculate-price")
-def calculate_price(
-    payload: PriceRequest
-):
-
+async def calculate_price(request: Request):
+    payload = await parse_body(request, PriceRequest)
     item = payload.item.lower()
 
     if item not in EQUIPMENT_DB:
@@ -156,15 +151,12 @@ def calculate_price(
 
 
 # -------------------------
-# TOOL: CREATE BOOKING REQUEST
-# (NOT auto-confirmed)
+# CREATE BOOKING
 # -------------------------
 
 @app.post("/tools/create-booking")
-def create_booking(
-    payload: BookingRequest
-):
-
+async def create_booking(request: Request):
+    payload = await parse_body(request, BookingRequest)
     item = payload.item.lower()
 
     if item not in EQUIPMENT_DB:
@@ -178,13 +170,12 @@ def create_booking(
 
 
 # -------------------------
-# TOOL: HUMAN HANDOFF
+# HUMAN HANDOFF
 # -------------------------
 
 @app.post("/tools/handoff")
-def human_handoff(
-    payload: HandoffRequest
-):
+async def human_handoff(request: Request):
+    payload = await parse_body(request, HandoffRequest)
 
     return {
         "status": "received",
